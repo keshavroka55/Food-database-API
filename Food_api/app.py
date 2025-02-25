@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from waitress import serve
 import config
 
 app = Flask(__name__)
@@ -49,5 +50,7 @@ def get_rice_info():
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()  # Ensure tables are created
-    app.run(debug=True)
+        db.create_all()  # Ensure tables are created when the app starts
+
+    # Use Waitress to serve the app instead of app.run()
+    serve(app, host='0.0.0.0', port=5000)

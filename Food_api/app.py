@@ -1,57 +1,36 @@
-from flask import Flask, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from waitress import serve
-import config
+from flask import Flask
+import mysql.connector
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:krish123@localhost/food_db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+# Database Configuration
+db_config = {
+    'host': 'sql205.infinityfree.com',  # MySQL Hostname
+    'user': 'if0_38392260',             # MySQL Username
+    'password': 'eOYV27NhPEf',          # MySQL Password (Never share in production)
+    'database': 'if0_38392260_nepalifood'  # Your Database Name
+}
 
-# Food item model (Map to `food_items` table)
-class FoodItem(db.Model):
-    __tablename__ = 'foods'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    protein = db.Column(db.Float)
-    fat = db.Column(db.Float)
-    carbs = db.Column(db.Float)
+def connect_db():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        return conn
+    except mysql.connector.Error as err:
+        return str(err)
 
 @app.route('/')
 def home():
-    return "Welcome to the Food API!"
+    conn = connect_db()
+    if isinstance(conn, str):
+        return f"Database Connection Failed: {conn}"
+    
+    cursor = conn.cursor()
+    cursor.execute("SHOW TABLES")
+    tables = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    return f"Connected! Tables: {tables}"
 
-@app.route('/egg', methods=['GET'])
-def get_egg_info():
-    # Fetch egg data from MySQL database
-    egg = FoodItem.query.filter_by(name="Egg").first()
-    if egg:
-        return jsonify({
-            'name': egg.name,
-            'protein': egg.protein,
-            'fat': egg.fat,
-            'carbs': egg.carbs
-        })
-    return jsonify({"message": "Egg not found!"}), 404
-
-@app.route('/rice', methods=['GET'])
-def get_rice_info():
-    # Fetch rice data from MySQL database
-    rice = FoodItem.query.filter_by(name="Rice").first()
-    if rice:
-        return jsonify({
-            'name': rice.name,
-            'protein': rice.protein,
-            'fat': rice.fat,
-            'carbs': rice.carbs
-        })
-    return jsonify({"message": "Rice not found!"}), 404
-
-
-
-# Run the app
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()  # Ensure tables are created in the database
     app.run(debug=True)
